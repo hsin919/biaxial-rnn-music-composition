@@ -7,14 +7,17 @@ import multi_training
 import model
 
 def gen_adaptive(m,pcs,times,keep_thoughts=False,name="final"):
+    pcs = multi_training.loadPieces("./music/單一小節資料夾")
 	xIpt, xOpt = map(lambda x: numpy.array(x, dtype='int8'), multi_training.getPieceSegment(pcs))
 	all_outputs = [xOpt[0]]
 	if keep_thoughts:
 		all_thoughts = []
 	m.start_slow_walk(xIpt[0])
 	cons = 1
-	for time in range(multi_training.batch_len*times):
-		resdata = m.slow_walk_fun( cons )
+    
+    // 前三小節
+    resdata = m.slow_walk_fun( cons ) 利用model產生一個小節的鼓
+	for time in range(三小節):
 		nnotes = numpy.sum(resdata[-1][:,0])
 		if nnotes < 2:
 			if cons > 1:
@@ -25,6 +28,29 @@ def gen_adaptive(m,pcs,times,keep_thoughts=False,name="final"):
 		all_outputs.append(resdata[-1])
 		if keep_thoughts:
 			all_thoughts.append(resdata)
+            
+    // 開始接上最後一小節
+    pcs = multi_training.loadPieces("./music/過門資料夾")
+    
+	xIpt, xOpt = map(lambda x: numpy.array(x, dtype='int8'), multi_training.getPieceSegment(pcs))
+	all_outputs = [xOpt[0]]
+	if keep_thoughts:
+		all_thoughts = []
+	m.start_slow_walk(xIpt[0])
+	cons = 1
+    
+    // 利用model產生過門
+    resdata = m.slow_walk_fun( cons )
+	nnotes = numpy.sum(resdata[-1][:,0])
+	if nnotes < 2:
+		if cons > 1:
+			cons = 1
+		cons -= 0.02
+	else:
+		cons += (1 - cons)*0.3
+	all_outputs.append(resdata[-1])
+    
+    
 	noteStateMatrixToMidi(numpy.array(all_outputs),'output/'+name)
 	if keep_thoughts:
 		pickle.dump(all_thoughts, open('output/'+name+'.p','wb'))
